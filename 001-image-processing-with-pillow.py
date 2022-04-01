@@ -116,3 +116,18 @@ for n in range(3,8):
     plt.imshow(get_concat_h(image_gray,  image_gray.quantize(256//2**n))) 
     plt.title("256 Quantization Levels  left vs {}  Quantization Levels right".format(256//2**n))
     plt.show()
+
+#Amazing. Let us continue our magical journey with a different pic.
+
+baboon = Image.open('baboon.png')
+baboon
+
+#Let us split up the colour channels RGB 
+red, green, blue = baboon.split()
+
+#Put the original image, next to the intensity levels of red, blue, green
+get_concat_h(baboon, red)
+get_concat_h(baboon, blue)
+get_concat_h(baboon, green)
+
+
