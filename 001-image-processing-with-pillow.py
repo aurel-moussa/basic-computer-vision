@@ -130,4 +130,5 @@ get_concat_h(baboon, red)
 get_concat_h(baboon, blue)
 get_concat_h(baboon, green)
 
-
+#03. Converting into arrays
+#In order to later use machine learning functions, we will have to convert the image
