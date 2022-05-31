@@ -67,6 +67,7 @@ from PIL import ImageFilter
 #mean filtering kernel simply averages ot the kernels in a neighbourhood
 
 # Create a kernel which is a 5 by 5 array where each value is 1/36
+#Note: The maximum kernel size with which PIL can work is 5x5... use Open CV instead if you require BIG BOY kernels
 kernel = np.ones((5,5))/36
 # Create a ImageFilter Kernel by providing the kernel size and a flattened kernel
 kernel_filter = ImageFilter.Kernel((5,5), kernel.flatten())
@@ -100,3 +101,68 @@ plot_image(image_filtered , noisy_image,title_1="Filtered image",title_2="Image 
 image_filtered = noisy_image.filter(ImageFilter.GaussianBlur(4)) #parameter change
 # Plots the Filtered Image then the Unfiltered Image with Noise
 plot_image(image_filtered , noisy_image,title_1="Filtered image",title_2="Image Plus Noise")
+
+#IMAGE SHARPENING
+#Image sharpening is all about smoothing the image and calculating the derivatives
+#Let us do this by the following kernel
+
+# Common Kernel for image sharpening
+kernel = np.array([[-1,-1,-1], 
+                   [-1, 9,-1],
+                   [-1,-1,-1]])
+kernel = ImageFilter.Kernel((3,3), kernel.flatten())
+# Applys the sharpening filter using kernel on the original image without noise
+sharpened = image.filter(kernel)
+# Plots the sharpened image and the original image without noise
+plot_image(sharpened , image, title_1="Sharpened image",title_2="Image")
+
+#We can also use pre-defined filters for sharpening
+# Sharpends image using predefined image filter from PIL
+sharpened = image.filter(ImageFilter.SHARPEN)
+# Plots the sharpened image and the original image without noise
+plot_image(sharpened , image, title_1="Sharpened image",title_2="Image")
+
+#EDGE DETECTION
+#Edges are where pixel intensities change. 
+#The Gradient of a function outputs the rate of change; we can approximate the gradient of a grayscale image with convolution.
+#Edge detection is super-duper important for object recognition
+
+#Loading the image
+# Loads the image from the specified file
+img_gray = Image.open('barbara.png')
+# Renders the image from the array of data, notice how it is 2 diemensional instead of 3 diemensional because it has no colour
+plt.imshow(img_gray ,cmap='gray')
+
+#Let us first enhance the edges, so they are more easily picked up later
+# Filters the images using EDGE_ENHANCE filter
+img_gray = img_gray.filter(ImageFilter.EDGE_ENHANCE)
+# Renders the enhanced image
+plt.imshow(img_gray ,cmap='gray')
+
+# Filters the images using FIND_EDGES filter
+img_gray = img_gray.filter(ImageFilter.FIND_EDGES)
+# Renders the filtered image
+plt.figure(figsize=(10,10))
+plt.imshow(img_gray ,cmap='gray')
+
+#It makes a lot of sense to run an image through quality compression/reduction first (because of computational resources), 
+#then edge enhancing, the edge finding, before inputting it as the arrays to use for object recognition
+
+#MEDIAN FILTERING
+#Median filters find the median of all the pixels underneath the kernel area. The central element of the image is then repalced with this median value
+#We can use median filters to improve segmentation
+
+# Load the camera man image
+image = Image.open("cameraman.jpeg")
+# Make the image larger when it renders
+plt.figure(figsize=(10,10))
+# Renders the image
+plt.imshow(image,cmap="gray")
+
+#Median filters blurs the background, increasing the segmentation between the image in the foreground (cameraboy) and the background
+image = image.filter(ImageFilter.MedianFilter)
+plt.figure(figsize=(10,10))
+# Renders the image
+plt.imshow(image,cmap="gray")
+
+#This segmentation can be very useful for object deteection, to make certain objects stand out from other parts of the picture, such as the background
