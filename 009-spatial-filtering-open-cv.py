@@ -57,3 +57,50 @@ noise = np.random.normal(0,15,(rows,cols,3)).astype(np.uint8) #rows, columns and
 noisy_image = image + noise
 # Plots the original image and the image with noise using the function defined at the top
 plot_image(image, noisy_image, title_1="Orignal",title_2="Image Plus Noise")
+
+#FILTERING NOISE
+#Let's use a smoothing filter or low pass filter to create the average of pixels in a neighbourhood
+
+# Create a kernel which is a 6 by 6 array where each value is 1/36
+kernel = np.ones((6,6))/36 #thank god, with OpenCV we can have kernels of size bigger than 5x5
+
+#The function filter2D performs 2D convolution between the image src and the kernel on each colour channel independently
+#The parameter "ddepth" has to do with the size of the output image, we will set it to -1 so the input and output are the same size
+
+# Filters the images using the kernel
+image_filtered = cv2.filter2D(src=noisy_image, ddepth=-1, kernel=kernel)
+
+# Plots the Filtered and Image with Noise using the function defined at the top
+plot_image(image_filtered, noisy_image,title_1="Filtered image",title_2="Image Plus Noise")
+
+#A smaller kernel keeps image sharper, but filters less noise
+# Creates a kernel which is a 4 by 4 array where each value is 1/16
+kernel = np.ones((4,4))/16
+# Filters the images using the kernel
+image_filtered=cv2.filter2D(src=noisy_image,ddepth=-1,kernel=kernel)
+# Plots the Filtered and Image with Noise using the function defined at the top
+plot_image(image_filtered , noisy_image,title_1="filtered image",title_2="Image Plus Noise")
+
+#GAUSSIAN BLUR
+#Gaussian blur also filters noise, but generally is better at edge preservation
+#Open CV parameters for the GaussianBlur function are:
+#src = input image. The image can have many numbers of channels. These are processed indepdently
+#ksize = Gaussian kernel size
+#sigmaX = Gausian kernel standard deviation in the x direction
+#sigmaY = Gaussian kernel standard deviation in the y direction. If sigmaY is 0, it will be equal to sigmaX
+
+# Filters the images using GaussianBlur on the image with noise using a 4 by 4 kernel 
+image_filtered = cv2.GaussianBlur(noisy_image,(5,5),sigmaX=4,sigmaY=4)
+# Plots the Filtered Image then the Unfiltered Image with Noise
+plot_image(image_filtered , noisy_image,title_1="Filtered image",title_2="Image Plus Noise")
+
+#We can increase the GaussianBlur
+#Sigma behaves like the size of the mean filter, 
+#a larger value of sigma will make the image blurry, but you are still constrained by the size of the filter, there we set sigma to 10
+
+# Filters the images using GaussianBlur on the image with noise using a 11 by 11 kernel 
+image_filtered = cv2.GaussianBlur(noisy_image,(11,11),sigmaX=10,sigmaY=10)
+# Plots the Filtered Image then the Unfiltered Image with Noise
+plot_image(image_filtered , noisy_image,title_1="filtered image",title_2="Image Plus Noise")
+
+#IMAGE SHARPENING
