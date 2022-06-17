@@ -109,7 +109,90 @@ train_labels = train_labels.astype(int)
 train_labels = train_labels.reshape((train_labels.size,1))
 print(train_labels)
 
+#SPLITTING INTO TRAIN AND TEST
 #Splitting into training and test sets
 test_size = 0.2
 train_samples, test_samples, train_labels, test_labels = train_test_split(
     train_images, train_labels, test_size=test_size, random_state=0)
+
+#TRAINING KNN MODEL
+
+#Now we will train the KNN model
+#We'll use the cv2.ml.KNearest_create() from the OpenCV library. Instead of defining the required functions ourselves.
+#We need to define how many nearest neighbors will be used for classification as a hyper-parameter k.
+#k refers to the number of nearest neighbours to include in the majority of the voting process.
+#For example, in a model of k=3, a new, unlabeled datapoint, would look at the 3 nearest neighbours, and be labeled according to the majority vote between those 3 neighbours
+#parameter k can be toggled with/tuned in the training or model validation process
+#We can later fit the training and test images and get the accuracy score of the mode
+#We will try multiple values of k to find the optimal value for the dataset we have
+
+start_datetime = datetime.now() #we'll have a look at how long this process takes; so first we set the starting time
+
+knn = cv2.ml.KNearest_create() #creata new instance of KNN models
+knn.train(train_samples, cv2.ml.ROW_SAMPLE, train_labels) #train the knn with the train_samples and train_labels. cv2.ml.ROW_SAMPLE is required as otherwise the default is set at 1 row
+ 
+k_values = [1, 2, 3, 4, 5] # set different values of K
+k_result = [] #empty array to store our results
+for k in k_values:
+    ret,result,neighbours,dist = knn.findNearest(test_samples,k=k) 
+    #findNearest in CV2 requires parameters test_samples and how many ks it should look at
+    #it will spit out res: the proposed label of the new datapoint; neighbours: the labels of the nearest k datapoints; dist: the distance of new datapoint to nearest k datapoints
+    k_result.append(result) #put the results into our k_results array
+flattened = [] #empty array to store flattened results
+for res in k_result:
+    flat_result = [item for sublist in res for item in sublist] #does not compute Aurel
+    flattened.append(flat_result)
+
+end_datetime = datetime.now() #what's the time now
+print('Training Duration: ' + str(end_datetime-start_datetime)) #how long did computation take?
+
+#DETERMINING KNN MODEL ACCURACIES
+
+# create an empty list to save accuracy and the confusion matrix
+accuracy_res = []
+con_matrix = []
+# we will use a loop because we have multiple value of k
+for k_res in k_result:
+    label_names = [0, 1]
+    cmx = confusion_matrix(test_labels, k_res, labels=label_names)
+    con_matrix.append(cmx)
+    # get values for when we predict accurately
+    matches = k_res==test_labels
+    correct = np.count_nonzero(matches)
+    # calculate accuracy
+    accuracy = correct*100.0/result.size
+    accuracy_res.append(accuracy)
+# store accuracy for later when we create the graph
+res_accuracy = {k_values[i]: accuracy_res[i] for i in range(len(k_values))}
+list_res = sorted(res_accuracy.items())
+
+#VISUALZING CONFUSION MATRIX
+# for each value of k we will create a confusion matrix
+t=0
+for array in con_matrix:
+    df_cm = pd.DataFrame(array)
+    sns.set(font_scale=1.4) # for label size
+    sns.heatmap(df_cm, annot=True, annot_kws={"size": 16}, fmt = ".0f") # font size
+    t += 1
+    title = "Confusion Matrix for k equals " + str(t)
+    plt.title(title)
+    plt.show()
+
+## plot accuracy against knn
+x, y = zip(*list_res)
+plt.plot(x, y)
+plt.show()
+k_best = max(list_res,key=lambda item:item[1])[0]
+k_best
+
+#REPORTING BACK TO IBM CV STUDIOS
+parameters = {
+    'k_best': k_best
+}
+result = cvstudioClient.report(started=start_datetime, completed=end_datetime, parameters=parameters, accuracy=list_res)
+
+if result.ok:
+    print('Congratulations your results have been reported back to CV Studio!')
+    
+knn.save('knn_samples.yml') 
+result = cvstudioClient.uploadModel('knn_samples.yml', {'k_best': k_best})
