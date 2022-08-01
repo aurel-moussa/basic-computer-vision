@@ -63,3 +63,37 @@ print("Print the training dataset:\n ", train_dataset)
 # Create and print the validation dataset
 validation_dataset = dsets.MNIST(root='./data', download=True, transform=transforms.ToTensor())
 print("Print the validation dataset:\n ", validation_dataset)
+
+#Let us have a look at some images
+# Print the first image and label
+print("First Image and Label", show_data(train_dataset[0]))
+# Print the label
+print("The label: ", train_dataset[3][1])
+# Plot the image
+print("The image: ", show_data(train_dataset[3]))
+# Plot the image
+show_data(train_dataset[2])
+
+#We are going to create a softmax classifier class, inherting the nn.Module settings (base class for all neural networks)
+# Define softmax classifier class
+# Inherits nn.Module which is the base class for all neural networks
+class SoftMax(nn.Module):
+    
+    # Constructor
+    def __init__(self, input_size, output_size):
+        super(SoftMax, self).__init__()
+        # Creates a layer of given input size and output size
+        self.linear = nn.Linear(input_size, output_size)
+        
+    # Prediction
+    def forward(self, x):
+        # Runs the x value through the single layers defined above
+        z = self.linear(x)
+        return z
+    
+#Softmax requires vector inputs... 
+#Let us flatten the shape
+train_dataset[0][0].shape
+# Set input size and output size
+input_dim = 28 * 28
+output_dim = 10
