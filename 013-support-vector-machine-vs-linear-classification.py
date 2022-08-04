@@ -113,7 +113,42 @@ title = "Confusion Matrix for SVM results"
 plt.title(title)
 plt.show()
       
+#COMPARISON
+## Comparing both SVM and Logistic Regression with K-Fold Cross Validation
+#k-fold Cross validation is used when there are limited samples, 
+#the handwritten dataset contains about 1800 samples, 
+#this will give an opportunity for all the data to be in the training and test set at different given times
+#we will use l2 regularization to visualize how well they both do against SVM
       
+algorithm = [] #which algorithms we will test with
+algorithm.append(('SVM', svm_classifier)) #first, our previously defined support vector machines
+algorithm.append(('Logistic_L1', logit)) #our previously defined logistic regression model
+algorithm.append(('Logistic_L2', LogisticRegression(C=0.01, penalty='l2', solver='saga', tol=0.1, multi_class='multinomial'))) # anew logistic regression, which use l2 reather than l1
       
+results = []
+names = []
+y = digits.target
+for name, algo in algorithm:
+    k_fold = model_selection.KFold(n_splits=10, random_state=10) #use 10 n_splits 
+      #random_state will allow the way in which the data is shuffled to be repeatable. 
+      #Without the shuffling switched on, the random_state has no meaning.
+    if name == 'SVM':
+        X = flatten_digits
+        cv_results = model_selection.cross_val_score(algo, X, y, cv=k_fold, scoring='accuracy')
+    else:
+        scaler = StandardScaler()
+        X = scaler.fit_transform(flatten_digits)
+        cv_results = model_selection.cross_val_score(algo, X, y, cv=k_fold, scoring='accuracy')
+        
+    results.append(cv_results)
+    names.append(name)
+      
+fig = plt.figure()
+fig.suptitle('Compare Logistic and SVM results')
+ax = fig.add_subplot()
+plt.boxplot(results)
+plt.ylabel('Accuracy')
+ax.set_xticklabels(names)
+plt.show()
       
       
