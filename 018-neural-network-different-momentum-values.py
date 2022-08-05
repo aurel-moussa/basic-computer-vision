@@ -34,7 +34,7 @@ def plot_decision_regions_3class(model, data_set):
     plt.legend()
     
     
-# Create the dataset class
+# Create the dataset that we will test on (a swirly pattern with 3 classses)
 class Data(Dataset):
     # modified from: http://cs231n.github.io/neural-networks-case-study/
     # Constructor
@@ -140,3 +140,96 @@ def accuracy(model, data_set):
     _, yhat = torch.max(model(data_set.x), 1)
     return (yhat == data_set.y).numpy().mean()
 
+# create the dataset and plot it
+data_set = Data()
+data_set.plot_data()
+data_set.y = data_set.y.view(-1)
+
+# Initialize a dictionary to contain the cost and accuracy
+Results = {"momentum 0": {"Loss": 0, "Accuracy:": 0}, "momentum 0.1": {"Loss": 0, "Accuracy:": 0}}
+
+#PARAMETERS FOR THE THE NEURAL NETWORK (NO MOMENTUM VALUE)
+# Train a model with 1 hidden layer and 50 neurons
+# Size of input layer is 2, hidden layer is 50, and output layer is 3
+Layers = [2, 50, 3] # Our input values are x and y coordinates and this problem has 3 classes that can be output
+model = Net(Layers) # Create a model
+learning_rate = 0.10
+optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate) # Create an optimizer that updates model parameters using the learning rate, gradient, and no momentum
+train_loader = DataLoader(dataset=data_set, batch_size=20) # Create a Data Loader for the training data with a batch size of 20
+criterion = nn.CrossEntropyLoss() # We create a criterion which will measure loss
+
+#TRAINING AND PLOTTING THE NETWORK (NO MOMENTUM VALUE)
+Results["momentum 0"] = train(data_set, model, criterion, train_loader, optimizer, epochs=100) # Use the training function to train the model for 100 epochs
+plot_decision_regions_3class(model, data_set) # Prints the dataset and decision boundaries
+
+#PARAMETERS FOR THE THE NEURAL NETWORK (MOMENTUM VALUE = 0.1)
+# Train a model with 1 hidden layer and 50 neurons with 0.1 momentum
+# Size of input layer is 2, hidden layer is 50, and output layer is 3
+Layers = [2, 50, 3] # Our input values are x and y coordinates and this problem has 3 classes that can be output
+model = Net(Layers) # Create a model
+learning_rate = 0.10
+optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.1) # Create an optimizer that updates model parameters using the learning rate, gradient, and 0.1 momentum
+train_loader = DataLoader(dataset=data_set, batch_size=20) # Create a Data Loader for the training data with a batch size of 20
+criterion = nn.CrossEntropyLoss() # We create a criterion which will measure loss
+
+#TRAINING AND PLOTTING THE NETWORK (MOMENTUM VALUE = 0.1)
+Results["momentum 0.1"] = train(data_set, model, criterion, train_loader, optimizer, epochs=100) # Use the training function to train the model for 100 epochs
+plot_decision_regions_3class(model, data_set) # Prints the dataset and decision boundaries
+
+#PARAMETERS FOR THE THE NEURAL NETWORK (MOMENTUM VALUE = 0.2)
+# Train a model with 1 hidden layer and 50 neurons with 0.2 momentum
+# Size of input layer is 2, hidden layer is 50, and output layer is 3
+Layers = [2, 50, 3] # Our input values are x and y coordinates and this problem has 3 classes that can be output
+model = Net(Layers) # Create a model
+learning_rate = 0.10
+optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.2) # Create an optimizer that updates model parameters using the learning rate, gradient, and 0.1 momentum
+train_loader = DataLoader(dataset=data_set, batch_size=20) # Create a Data Loader for the training data with a batch size of 20
+criterion = nn.CrossEntropyLoss() # We create a criterion which will measure loss
+
+#TRAINING AND PLOTTING THE NETWORK (MOMENTUM VALUE = 0.2)
+Results["momentum 0.2"] = train(data_set, model, criterion, train_loader, optimizer, epochs=100) # Use the training function to train the model for 100 epochs
+plot_decision_regions_3class(model, data_set) # Prints the dataset and decision boundaries
+
+#PARAMETERS FOR THE THE NEURAL NETWORK (MOMENTUM VALUE = 0.4)
+# Train a model with 1 hidden layer and 50 neurons with 0.4 momentum
+# Size of input layer is 2, hidden layer is 50, and output layer is 3
+Layers = [2, 50, 3] # Our input values are x and y coordinates and this problem has 3 classes that can be output
+model = Net(Layers) # Create a model
+learning_rate = 0.10
+optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.4) # Create an optimizer that updates model parameters using the learning rate, gradient, and 0.1 momentum
+train_loader = DataLoader(dataset=data_set, batch_size=20) # Create a Data Loader for the training data with a batch size of 20
+criterion = nn.CrossEntropyLoss() # We create a criterion which will measure loss
+
+#TRAINING AND PLOTTING THE NETWORK (MOMENTUM VALUE = 0.4)
+Results["momentum 0.4"] = train(data_set, model, criterion, train_loader, optimizer, epochs=100) # Use the training function to train the model for 100 epochs
+plot_decision_regions_3class(model, data_set) # Prints the dataset and decision boundaries
+
+#PARAMETERS FOR THE THE NEURAL NETWORK (MOMENTUM VALUE = 0.5)
+# Train a model with 1 hidden layer and 50 neurons with 0.5 momentum
+# Size of input layer is 2, hidden layer is 50, and output layer is 3
+Layers = [2, 50, 3] # Our input values are x and y coordinates and this problem has 3 classes that can be output
+model = Net(Layers) # Create a model
+learning_rate = 0.10
+optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.5) # Create an optimizer that updates model parameters using the learning rate, gradient, and 0.1 momentum
+train_loader = DataLoader(dataset=data_set, batch_size=20) # Create a Data Loader for the training data with a batch size of 20
+criterion = nn.CrossEntropyLoss() # We create a criterion which will measure loss
+
+#TRAINING AND PLOTTING THE NETWORK (MOMENTUM VALUE = 0.5)
+Results["momentum 0.4"] = train(data_set, model, criterion, train_loader, optimizer, epochs=100) # Use the training function to train the model for 100 epochs
+plot_decision_regions_3class(model, data_set) # Prints the dataset and decision boundaries
+
+
+#COMPARISON
+# Plot the Loss result for each term
+for key, value in Results.items():
+    plt.plot(value['Loss'],label=key)
+    plt.legend()
+    plt.xlabel('epoch')
+    plt.ylabel('Total Loss or Cost')
+
+# Plot the Accuracy result for each term
+for key, value in Results.items():
+    plt.plot(value['Accuracy'],label=key)
+    plt.legend()
+    plt.xlabel('epoch')
+    plt.ylabel('Accuracy')    
