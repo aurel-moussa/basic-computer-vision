@@ -118,5 +118,51 @@ train_dataset = dsets.MNIST(root='./data', train=True, download=True, transform=
 validation_dataset = dsets.MNIST(root='./data', train=False, download=True, transform=transforms.ToTensor())
 
 #MORE PARAMETER SETTING
-# Create the criterion function
+# Set the criterion function
 criterion = nn.CrossEntropyLoss()
+#Creating data loader for training data and validation data
+
+# Batch size is 2000 and shuffle=True means the data will be shuffled at every epoch
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=2000, shuffle=True)
+# Batch size is 5000 and the data will not be shuffled at every epoch
+validation_loader = torch.utils.data.DataLoader(dataset=validation_dataset, batch_size=5000, shuffle=False)
+
+#CREATION OF NEURAL NETWORKS
+#With 100 hidden neurons (50 in hidden layer 1, 50 in hidden layer 2)
+
+input_dim = 28 * 28 # image dimensions are 28 pixles times 28 pixels
+hidden_dim1 = 50
+hidden_dim2 = 50
+output_dim = 10 # number of classes, 10 because we have 10 digits
+cust_epochs = 10 #10 for these purposes now, because more would take longer to process
+
+#SIGMOID ACTIVATION NN
+learning_rate = 0.01
+model = Net(input_dim, hidden_dim1, hidden_dim2, output_dim) #create the instance
+optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate) #set the optimizer function
+training_results = train(model, criterion, train_loader, validation_loader, optimizer, epochs=cust_epochs) #train
+
+#RELU ACTIVATION NN
+learning_rate = 0.01
+modelRelu = NetRelu(input_dim, hidden_dim1, hidden_dim2, output_dim) #create the instance
+optimizer = torch.optim.SGD(modelRelu.parameters(), lr=learning_rate) #set the optimizer function
+training_results_relu = train(modelRelu, criterion, train_loader, validation_loader, optimizer, epochs=cust_epochs) #train
+
+
+#ANALZYING RESULTS
+# Compare the training losses
+plt.plot(training_results['training_loss'], label='sigmoid')
+plt.plot(training_results_relu['training_loss'], label='relu')
+plt.ylabel('loss')
+plt.title('training loss iterations')
+plt.legend()
+
+# Compare the validation accuracies
+plt.plot(training_results['validation_accuracy'], label = 'sigmoid')
+plt.plot(training_results_relu['validation_accuracy'], label = 'relu') 
+plt.ylabel('validation accuracy')
+plt.xlabel('Iteration')   
+plt.legend()
+
+#We can see visually, that with that high amount of neurons, and two layers, the sigmoid activation function is not doing good
+#The Relu activation function is doing much better
