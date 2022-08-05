@@ -112,5 +112,11 @@ def train(model, criterion, train_loader, validation_loader, optimizer, epochs=1
     
     return useful_stuff
   
-  #GETTING DATASET
-  
+#GETTING DATASET
+train_dataset = dsets.MNIST(root='./data', train=True, download=True, transform=transforms.ToTensor())
+#This is the training set (train=True), and it has to be transformed to a tensor so that PyTorch can work with it
+validation_dataset = dsets.MNIST(root='./data', train=False, download=True, transform=transforms.ToTensor())
+
+#MORE PARAMETER SETTING
+# Create the criterion function
+criterion = nn.CrossEntropyLoss()
