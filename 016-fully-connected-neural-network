@@ -1,0 +1,21 @@
+#We can make multiclass predictions using neural networks, 
+#we just add more neurons to the output layer. 
+#The process can be thought of as just replacing the output layer with a SoftMax function
+
+#Each neuron is like a linear classifier, 
+#therefore each neuron must have the same number of inputs as the previous layer
+#If we add more than one hidden layer, we call it a deep neural network
+#More neurons and more layers MAY lead to overfitting and are harder to train, though; so we need to check
+#different neural architecture
+
+#To come up with WHICH neural architecutre is best,
+#you should test all the different architectures on VALIDATION data,
+#then choose the one with the highest accuracy
+
+#The problem with many layers is the VANISHING GRADIENT PROBLEM,
+#This is especially problematic if you use the Sigmoid activation function
+#RELU activation function can deal with that a bit more (only used in hidden layers)
+
+#Training neural network is more of an art than a science, you'll have to try things out
+
+
