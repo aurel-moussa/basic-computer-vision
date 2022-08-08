@@ -96,3 +96,171 @@ validation_dataset = dsets.MNIST(root='./data', train=False, download=True, tran
 #have a look at one of the datapoints
 train_dataset[3] #the 4th datapoint, containing the pixel values in [0] and the label in [1]
 show_data(train_dataset[3]) 
+
+#BUILDING CONVOLUTIONAL NETWORK CLASS
+class CNN(nn.Module):
+    
+    # Contructor
+    def __init__(self, out_1=16, out_2=32):
+        super(CNN, self).__init__()
+        # The reason we start with 1 channel is because we have a single black and white image
+        # Channel Width after this layer is 16
+        self.cnn1 = nn.Conv2d(in_channels=1, out_channels=out_1, kernel_size=5, padding=2)
+        # Channel Wifth after this layer is 8
+        self.maxpool1=nn.MaxPool2d(kernel_size=2)
+        
+        # Channel Width after this layer is 8
+        self.cnn2 = nn.Conv2d(in_channels=out_1, out_channels=out_2, kernel_size=5, stride=1, padding=2)
+        # Channel Width after this layer is 4
+        self.maxpool2=nn.MaxPool2d(kernel_size=2)
+        # In total we have out_2 (32) channels which are each 4 * 4 in size based on the width calculation above. Channels are squares.
+        # The output is a value for each class
+        self.fc1 = nn.Linear(out_2 * 4 * 4, 10)
+    
+    # Prediction
+    def forward(self, x):
+        # Puts the X value through each cnn, relu, and pooling layer and it is flattened for input into the fully connected layer
+        x = self.cnn1(x)
+        x = torch.relu(x)
+        x = self.maxpool1(x)
+        x = self.cnn2(x)
+        x = torch.relu(x)
+        x = self.maxpool2(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc1(x)
+        return x
+    
+    # Outputs result of each stage of the CNN, relu, and pooling layers
+    def activations(self, x):
+        # Outputs activation this is not necessary
+        z1 = self.cnn1(x)
+        a1 = torch.relu(z1)
+        out = self.maxpool1(a1)
+        
+        z2 = self.cnn2(out)
+        a2 = torch.relu(z2)
+        out1 = self.maxpool2(a2)
+        out = out.view(out.size(0),-1)
+        return z1, a1, z2, a2, out1,out
+
+## Create the model object we want
+model = CNN(out_1=16, out_2=32) #16 output channels for the first layer, and 32 output channels for the second layer
+
+#Define loss fuction, optimizer, dataset loader
+# create a criterion which will measure loss
+criterion = nn.CrossEntropyLoss()
+learning_rate = 0.1
+# Create an optimizer that updates model parameters using the learning rate and gradient
+optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
+# Create a Data Loader for the training data with a batch size of 100 
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=100)
+# Create a Data Loader for the validation data with a batch size of 5000 
+validation_loader = torch.utils.data.DataLoader(dataset=validation_dataset, batch_size=5000)
+
+#TRAINING MODEL
+# Train the model
+
+# Number of times we want to train on the taining dataset
+n_epochs=3
+# List to keep track of cost and accuracy
+cost_list=[]
+accuracy_list=[]
+# Size of the validation dataset
+N_test=len(validation_dataset)
+
+# Model Training Function
+def train_model(n_epochs):
+    # Loops for each epoch
+    for epoch in range(n_epochs):
+        # Keeps track of cost for each epoch
+        COST=0
+        # For each batch in train loader
+        for x, y in train_loader:
+            # Resets the calculated gradient value, this must be done each time as it accumulates if we do not reset
+            optimizer.zero_grad()
+            # Makes a prediction based on X value
+            z = model(x)
+            # Measures the loss between prediction and acutal Y value
+            loss = criterion(z, y)
+            # Calculates the gradient value with respect to each weight and bias
+            loss.backward()
+            # Updates the weight and bias according to calculated gradient value
+            optimizer.step()
+            # Cumulates loss 
+            COST+=loss.data
+        
+        # Saves cost of training data of epoch
+        cost_list.append(COST)
+        # Keeps track of correct predictions
+        correct=0
+        # Perform a prediction on the validation  data  
+        for x_test, y_test in validation_loader:
+            # Makes a prediction
+            z = model(x_test)
+            # The class with the max value is the one we are predicting
+            _, yhat = torch.max(z.data, 1)
+            # Checks if the prediction matches the actual value
+            correct += (yhat == y_test).sum().item()
+        
+        # Calcualtes accuracy and saves it
+        accuracy = correct / N_test
+        accuracy_list.append(accuracy)
+     
+train_model(n_epochs)
+
+#ANALYZE RESULTS
+# Plot the Loss and Accuracy vs Epoch graph
+
+fig, ax1 = plt.subplots()
+color = 'tab:red'
+ax1.plot(cost_list, color=color)
+ax1.set_xlabel('epoch', color=color)
+ax1.set_ylabel('Cost', color=color)
+ax1.tick_params(axis='y', color=color)
+    
+ax2 = ax1.twinx()  
+color = 'tab:blue'
+ax2.set_ylabel('accuracy', color=color) 
+ax2.set_xlabel('epoch', color=color)
+ax2.plot( accuracy_list, color=color)
+ax2.tick_params(axis='y', color=color)
+fig.tight_layout()
+
+# Plot the channels
+
+plot_channels(model.state_dict()['cnn1.weight'])
+plot_channels(model.state_dict()['cnn2.weight'])
+
+#Let us have a look at specific images
+# Show the second image
+show_data(train_dataset[1])
+
+# Use the CNN activations class to see the steps
+out = model.activations(train_dataset[1][0].view(1, 1, IMAGE_SIZE, IMAGE_SIZE))
+
+# Plot the outputs after the first CNN
+plot_activations(out[0], number_rows=4, name="Output after the 1st CNN")
+
+# Plot the outputs after the first Relu
+plot_activations(out[1], number_rows=4, name="Output after the 1st Relu")
+
+# Plot the outputs after the second CNN
+plot_activations(out[2], number_rows=32 // 4, name="Output after the 2nd CNN")
+
+# Plot the outputs after the second Relu
+plot_activations(out[3], number_rows=4, name="Output after the 2nd Relu")
+
+#Let us have a look at where the model misclassified
+# Plot the misclassified samples
+
+count = 0
+for x, y in torch.utils.data.DataLoader(dataset=validation_dataset, batch_size=1):
+    z = model(x)
+    _, yhat = torch.max(z, 1)
+    if yhat != y:
+        show_data((x, y))
+        plt.show()
+        print("yhat: ",yhat)
+        count += 1
+    if count >= 5:
+        break  
