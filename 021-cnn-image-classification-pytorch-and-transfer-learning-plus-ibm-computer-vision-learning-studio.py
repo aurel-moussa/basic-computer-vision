@@ -290,4 +290,8 @@ model.load_state_dict(torch.load( "model.pt"))
 model.eval()
 
 #NEXT, YOU CAN CREATE A WEBAPP in which users can upload their picture to have this model be applied to a new picture!
+#In CV Studio, go to the use model section and select New Application. 
+#Fill out the window, giving your model a name and selecting the Model in this project, 
+#select TEST - 1-click Deploy your Model to Cloud (Code Engine) and select the model from the training run 
 
+#Then create application, and get the URL of the webapp
