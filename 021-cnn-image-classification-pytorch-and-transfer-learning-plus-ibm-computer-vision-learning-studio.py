@@ -72,3 +72,222 @@ def plot_stuff(COST,ACC):
     
     plt.show()
 
+#for plotting a transformed image
+def imshow_(inp, title=None):
+    """Imshow for Tensor."""
+    inp = inp .permute(1, 2, 0).numpy() 
+    print(inp.shape)
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    inp = std * inp + mean
+    inp = np.clip(inp, 0, 1)
+
+    plt.imshow(inp)
+    if title is not None:
+        plt.title(title)
+    plt.pause(0.001)  
+    plt.show()
+    
+#comparing predicted value and actual value
+def result(model,x,y):
+    #x,y=sample
+    z=model(x.unsqueeze_(0))
+    _,yhat=torch.max(z.data, 1)
+    
+    if yhat.item()!=y:
+        text="predicted: {} actual: {}".format(str(yhat.item()),y)
+        print(text)
+
+#define our device as the first visible cuda device if we have CUDA available        
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("the device type is", device)
+
+#LOADING DATA; PREPROCESSING IMAGES; AUGMENTING IMAGE DATA
+#we will preprocess our dataset by changing the shape of the image, converting to tensor and normalizing the image channels
+#These are the default preprocessing steps for image data. 
+#In addition, we will perform data augmentation on the training dataset. (so that our model later can also deal with "non-perfect" images, e.g., rotated images)
+#The preprocessing steps for the test dataset is the same, but we do not prform data augmentation on the test dataset.
+
+#Parameters for normalizing the image channels
+mean = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
+
+#parameters to transform image (resizing it, augmenting it with random flip and random rotation, transforming into tensor, and normalizing the channels)
+composed = transforms.Compose([transforms.Resize((224, 224)),
+        transforms.RandomHorizontalFlip(),transforms.RandomRotation(degrees=5)
+                               , transforms.ToTensor()
+                               , transforms.Normalize(mean, std)])
+
+
+# GETTING THE DATASET
+# Initialize the CV Studio Client
+cvstudioClient = cvstudio.CVStudio()
+# Download All Images
+cvstudioClient.downloadAll()
+
+#Splitting into training and test sets
+percentage_train=0.9
+train_set=cvstudioClient.getDataset(train_test='train',percentage_train=percentage_train)
+val_set=cvstudioClient.getDataset(train_test='test',percentage_train=percentage_train)
+
+#Let us first check and have a look at our datasets
+i=0
+for x,y  in val_set:
+    imshow_(x,"y=: {}".format(str(y.item())))
+    i+=1
+    if i==3:
+        break
+        
+#HYPERPARAMETERS FOR MODEL
+n_epochs=10 #ndicates the number of passes of the entire training dataset
+batch_size=32 #Batch size is the number of training samples utilized in one iteration. 
+#If the batch size is equal to the total number of samples in the training set, then every epoch has one iteration. 
+#In Stochastic Gradient Descent, the batch size is set to one. A batch size of between 32 and 512 data points seems like a good value.
+#More art than science
+lr=0.000001 #a hyperparameter with a small positive value, often in the range between 0.0 and 1.0, specificies how much to "jump" around in the next epoch - too little and learning will be very slow, too much and you can jump around the local minimum, never reaching it
+momentum=0.9 #used in the gradient descent algorithm to improve training results
+
+#setting a lr_scheduler to true, then
+#every epoch use a learning rate scheduler 
+#which changes the range of the learning rate from a maximum or minimum value
+#The learning rate usually decays over time (as you approach a local minimum)
+lr_scheduler=True
+base_lr=0.001
+max_lr=0.01
+
+#TRAINING MODEL
+#Function to train
+def train_model(model, train_loader,validation_loader, criterion, optimizer, n_epochs,print_=True):
+    loss_list = []
+    accuracy_list = []
+    correct = 0
+    #global:val_set
+    n_test = len(val_set)
+    accuracy_best=0
+    best_model_wts = copy.deepcopy(model.state_dict())
+
+    # Loop through epochs
+        # Loop through the data in loader
+    print("The first epoch should take several minutes")
+    for epoch in tqdm(range(n_epochs)):
+        
+        loss_sublist = []
+        # Loop through the data in loader
+
+        for x, y in train_loader:
+            x, y=x.to(device), y.to(device)
+            model.train() 
+
+            z = model(x)
+            loss = criterion(z, y)
+            loss_sublist.append(loss.data.item())
+            loss.backward()
+            optimizer.step()
+
+            optimizer.zero_grad()
+        print("epoch {} done".format(epoch) )
+
+        scheduler.step()    
+        loss_list.append(np.mean(loss_sublist))
+        correct = 0
+
+
+        for x_test, y_test in validation_loader:
+            x_test, y_test=x_test.to(device), y_test.to(device)
+            model.eval()
+            z = model(x_test)
+            _, yhat = torch.max(z.data, 1)
+            correct += (yhat == y_test).sum().item()
+        accuracy = correct / n_test
+        accuracy_list.append(accuracy)
+        if accuracy>accuracy_best:
+            accuracy_best=accuracy
+            best_model_wts = copy.deepcopy(model.state_dict())
+        
+        
+        if print_:
+            print('learning rate',optimizer.param_groups[0]['lr'])
+            print("The validaion  Cost for each epoch " + str(epoch + 1) + ": " + str(np.mean(loss_sublist)))
+            print("The validation accuracy for epoch " + str(epoch + 1) + ": " + str(accuracy)) 
+    model.load_state_dict(best_model_wts)    
+    return accuracy_list,loss_list, model
+
+#We will load a pre-trained model, the resnet18 model, setting pretrained to True
+model = models.resnet18(pretrained=True)
+
+#we will only train the last layer of the network 
+#set the parameter requires_grad to False
+#the network is a fixed feature extractor
+for param in model.parameters():
+        param.requires_grad = False
+
+#How many classes (labels) are there?        
+n_classes=train_set.n_classes
+n_classes
+
+# Now, we will replace the last (output layer) of the model
+#We set the model.fc to be a neural network Linear object, with 512 inputs (as this is the output from the previous hidden layer) and n_classes outputs
+#In this example, we have only 2 outputs
+model.fc = nn.Linear(512, n_classes)
+
+#Set the device type (?)
+model.to(device)
+
+#Set the loss function
+#Cross-entropy loss, or log loss, measures the performance of a classification model 
+#it combines LogSoftmax in one object class. 
+#It is useful when training a classification problem with C classes.
+criterion = nn.CrossEntropyLoss()
+
+#Create the data loaders to be used later
+train_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=batch_size,shuffle=True)
+validation_loader= torch.utils.data.DataLoader(dataset=val_set, batch_size=1)
+
+#Set the optimizer that will will update the weights of the model for us as it goes through the epochs
+optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum)
+
+#We will use Cycliclal Learning Rates (i.e., changing learning rates, not just a fixed one throughout the time)
+if lr_scheduler:
+    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.01,step_size_up=5,mode="triangular2")
+    
+#TRAINING THE MODEL
+start_datetime = datetime.now() #To check how long it will last
+start_time=time.time()
+
+accuracy_list,loss_list, model=train_model(model,train_loader , validation_loader, criterion, optimizer, n_epochs=n_epochs) #start trainiing!
+
+end_datetime = datetime.now() #To check how long it lasted
+current_time = time.time()
+elapsed_time = current_time - start_time
+print("elapsed time", elapsed_time )
+
+#REPORTING RESULTS BACK TO CV STUDIO
+arameters = {
+    'epochs': n_epochs,
+    'learningRate': lr,
+    'momentum':momentum,
+    'percentage used training':percentage_train,
+    "learningRatescheduler": {"lr_scheduler":lr_scheduler,"base_lr":base_lr, "max_lr" :max_lr}
+}
+result = cvstudioClient.report(started=start_datetime, completed=end_datetime, parameters=parameters, accuracy={ 'accuracy': accuracy_list, 'loss': loss_list })
+
+if result.ok:
+    print('Congratulations your results have been reported back to CV Studio!')
+    
+# Save the model to model.pt
+torch.save(model.state_dict(), 'model.pt')
+
+# Save the model and report back to CV Studio
+result = cvstudioClient.uploadModel('model.pt', {'numClasses': n_classes})
+
+#PLOT THE RESULTS
+plot_stuff(loss_list,accuracy_list)
+
+#The model that performs best:
+model = models.resnet18(pretrained=True)
+model.fc = nn.Linear(512, n_classes)
+model.load_state_dict(torch.load( "model.pt"))
+model.eval()
+
+#NEXT, YOU CAN CREATE A WEBAPP in which users can upload their picture to have this model be applied to a new picture!
+
